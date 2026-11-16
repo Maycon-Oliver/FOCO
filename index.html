@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2B54F0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FOCO">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<script src="config.js"></script>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<title>FOCO</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+  /* Layout: app de uma tela. Conteúdo rolável em cima, barra de abas fixa embaixo, coluna de até 480px. */
+  :root {
+    --bg: #F2F4F9;
+    --surface: #FFFFFF;
+    --surface-2: #E8ECF5;
+    --fg: #0D1325;
+    --muted: #586178;
+    --line: #D9DFEC;
+    --accent: #2B54F0;
+    --accent-fg: #FFFFFF;
+    --accent-soft: #E3EAFF;
+    --ok: #12805A;
+    --ok-soft: #DDF3EA;
+    --danger: #C62F3F;
+    --display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+    --body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0B0F1A; --surface: #141A2B; --surface-2: #1D2640; --fg: #EEF1F9; --muted: #9AA5C0;
+      --line: #263050; --accent: #6A8BFF; --accent-fg: #08102B; --accent-soft: #1B2650;
+      --ok: #3CCB93; --ok-soft: #10392C; --danger: #FF7A88; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0B0F1A; --surface: #141A2B; --surface-2: #1D2640; --fg: #EEF1F9; --muted: #9AA5C0;
+    --line: #263050; --accent: #6A8BFF; --accent-fg: #08102B; --accent-soft: #1B2650;
+    --ok: #3CCB93; --ok-soft: #10392C; --danger: #FF7A88; color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 400 16px/1.4 var(--body); -webkit-tap-highlight-color: transparent; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .ic { flex: none; display: block; }
+
+  #app { height: 100%; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+  .scroll {
+    flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    padding-block: 18px 28px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 22px;
+  }
+
+  /* barra de abas */
+  .tabbar {
+    display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface); border-top: 1px solid var(--line);
+    padding: 6px max(8px, env(safe-area-inset-right, 0px)) 6px max(8px, env(safe-area-inset-left, 0px));
+  }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 56px; justify-content: center; background: none; border: 0; border-radius: 12px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; }
+  .tab[aria-current="page"] { color: var(--accent); }
+  .tab[aria-current="page"] .ic { stroke-width: 2.6; }
+
+  /* marca */
+  .brandrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--accent); }
+  .word { font: 800 30px/1 var(--display); letter-spacing: .14em; color: var(--fg); padding-left: .14em; }
+  .word.big { font-size: 46px; }
+
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font: 800 20px var(--display); overflow: hidden; border: 2px solid var(--line); padding: 0; flex: none; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .avatar.xl { width: 104px; height: 104px; font-size: 44px; }
+
+  /* início */
+  .eyebrow { font: 700 14px var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .dateline { font: 800 44px/1 var(--display); text-transform: uppercase; margin-top: 4px; }
+  .hello { color: var(--muted); font-size: 18px; margin-top: 10px; }
+  .hello b { color: var(--fg); font-weight: 600; }
+  .hero { font: 800 clamp(46px, 14vw, 64px)/1 var(--display); text-transform: uppercase; text-wrap: balance; margin: 0; }
+  .hero em { font-style: normal; color: var(--accent); display: block; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 56px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-fg); font: 700 20px var(--display); letter-spacing: .1em; text-transform: uppercase; text-decoration: none; }
+  .btn.alt { background: var(--surface-2); color: var(--fg); }
+  .btn.ok { background: var(--ok); color: #fff; }
+  .btn.ghost { background: transparent; border: 2px solid var(--line); color: var(--fg); }
+  .btn.danger { background: transparent; border: 2px solid var(--danger); color: var(--danger); }
+  .btn.sm { min-height: 46px; font-size: 17px; }
+
+  .sectionhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .sectionhead h2 { margin: 0; font: 800 26px/1 var(--display); text-transform: uppercase; letter-spacing: .04em; }
+  .sectionhead span { color: var(--muted); font-size: 14px; }
+
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .wd { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+  .wd small { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .wd strong { font: 700 20px/1 var(--display); font-variant-numeric: tabular-nums; }
+  .wd .chip { min-width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font: 800 15px var(--display); background: var(--accent-soft); color: var(--accent); padding: 0 4px; }
+  .wd .chip.none { background: transparent; color: var(--muted); font-weight: 600; }
+  .wd.today { border: 2px solid var(--accent); }
+  .wd.done .chip { background: var(--ok); color: #fff; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .wcard { display: flex; align-items: stretch; overflow: hidden; }
+  .wcard.done { border-color: var(--ok); }
+  .wmain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 14px; background: none; border: 0; text-align: left; }
+  .tile { width: 54px; height: 54px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font: 800 36px/1 var(--display); flex: none; }
+  .done .tile { background: var(--ok-soft); color: var(--ok); }
+  .wtext { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .wtext b { font: 700 22px/1.1 var(--display); letter-spacing: .02em; overflow-wrap: anywhere; }
+  .wtext span { color: var(--muted); font-size: 14px; }
+  .chk { width: 72px; flex: none; display: grid; place-items: center; background: none; border: 0; border-left: 1px solid var(--line); }
+  .chk i { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--muted); display: grid; place-items: center; color: transparent; }
+  .done .chk i { background: var(--ok); border-color: var(--ok); color: #fff; }
+
+  .iconbtn { width: 46px; height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; flex: none; }
+  .iconbtn.fill { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  .titlerow { display: flex; align-items: center; gap: 12px; }
+  .titlerow h1 { margin: 0; font: 800 38px/1 var(--display); text-transform: uppercase; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .sub { color: var(--muted); font-size: 15px; margin-top: 4px; }
+
+  .ex { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  .ex .n { font: 800 26px/1 var(--display); color: var(--muted); width: 28px; text-align: center; font-variant-numeric: tabular-nums; flex: none; }
+  .ex .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .ex .t b { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
+  .ex .t span { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .ex .pl { width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; }
+
+  .empty { padding: 26px 18px; text-align: center; color: var(--muted); border: 2px dashed var(--line); border-radius: 14px; }
+  .empty b { display: block; color: var(--fg); font: 700 22px var(--display); text-transform: uppercase; margin-bottom: 4px; }
+
+  /* perfil */
+  .center { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+  .photobtn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-weight: 600; cursor: pointer; }
+  .photobtn input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .photobtn:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; background: var(--surface-2); border-radius: 12px; }
+  .seg button { min-height: 46px; border: 0; border-radius: 9px; background: transparent; font: 700 18px var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .seg button.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+  .group { display: flex; flex-direction: column; gap: 10px; }
+  .group h3 { margin: 0; font: 700 14px var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .note { color: var(--muted); font-size: 14px; }
+
+  /* formulários */
+  form { display: flex; flex-direction: column; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-weight: 600; font-size: 14px; }
+  .field input, .field select, .field textarea { width: 100%; min-height: 50px; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); font-size: 16px; }
+  .field textarea { min-height: 78px; resize: vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .err { color: var(--danger); font-weight: 600; min-height: 1.2em; font-size: 14px; }
+  .pwrow { position: relative; }
+  .pwrow input { padding-right: 96px; }
+  .pwrow button { position: absolute; right: 6px; top: 6px; bottom: 6px; padding: 0 12px; border: 0; background: var(--surface-2); border-radius: 8px; font-weight: 600; font-size: 14px; }
+
+  /* login */
+  .auth { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; gap: 26px; padding-block: 28px;
+    padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+  .auth .brand { flex-direction: column; gap: 8px; text-align: center; }
+  .auth .brand p { margin: 0; color: var(--muted); font-size: 17px; }
+
+  /* janelas */
+  .sheet-bg { position: fixed; inset: 0; background: rgba(5, 9, 20, .55); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+  .sheet { width: 100%; max-width: 480px; max-height: 92%; overflow-y: auto; background: var(--bg); border-radius: 20px 20px 0 0; border: 1px solid var(--line); border-bottom: 0;
+    padding-top: 18px; padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 16px; }
+  .sheet h2 { margin: 0; font: 800 32px/1 var(--display); text-transform: uppercase; overflow-wrap: anywhere; }
+  .sheet .grab { width: 44px; height: 5px; border-radius: 3px; background: var(--line); align-self: center; margin-top: -6px; }
+  .pill { display: inline-block; padding: 4px 12px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font: 700 18px var(--display); letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+  .btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .btn, .tab, .wmain, .chk, .ex { transition: transform .08s ease; }
+    .btn:active, .ex:active, .wmain:active { transform: scale(.985); }
+  }
+</style>
+
+<div id="app"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- dados ---------- */
+  var KEY = 'foco.v1', mem = null;
+  var DAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+  var DAYS_FULL = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+  var MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+  function load() {
+    try { var r = localStorage.getItem(KEY); if (r) return JSON.parse(r); } catch (e) {}
+    return mem || { users: {}, session: null, theme: null };
+  }
+  var DB = load();
+  function persist() { mem = DB; try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {} }
+  var uid = function () { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); };
+  var U = function () { return DB.users[DB.session]; };
+
+  /* ---------- nuvem (Supabase, via REST) ---------- */
+  var CFG = window.FOCO_CONFIG || {};
+  var CLOUD = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY);
+  var BASE = CLOUD ? String(CFG.SUPABASE_URL).replace(/\/+$/, '') : '';
+  var MINPW = CLOUD ? 6 : 4;
+  var sync = { state: CLOUD ? 'idle' : 'local' }, pushTimer = null, pushing = false;
+  var SYNC_TEXT = {
+    local: 'Modo local: os dados ficam só neste aparelho.',
+    idle: 'Sincronizado com a nuvem.',
+    busy: 'Sincronizando...',
+    off: 'Sem conexão. Os dados serão enviados quando voltar.',
+    err: 'Erro ao sincronizar. Vamos tentar de novo.',
+    auth: 'Sessão expirada. Saia e entre de novo.'
+  };
+  function setSync(s) { sync.state = s; var el = $('#syncstat'); if (el) el.textContent = SYNC_TEXT[s]; }
+  var mail = function (user) { return user + '@foco.app'; };
+
+  function save() {
+    if (CLOUD && DB.session && DB.users[DB.session]) { var u = DB.users[DB.session]; u.updatedAt = Date.now(); u.dirty = true; schedulePush(); }
+    persist();
+  }
+
+  function api(path, opts, token) {
+    opts = opts || {};
+    var h = { apikey: CFG.SUPABASE_ANON_KEY, 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || CFG.SUPABASE_ANON_KEY) };
+    for (var k in (opts.headers || {})) h[k] = opts.headers[k];
+    return fetch(BASE + path, { method: opts.method || 'GET', headers: h, body: opts.body ? JSON.stringify(opts.body) : undefined }).then(function (r) {
+      return r.text().then(function (t) {
+        var j = null; try { j = t ? JSON.parse(t) : null; } catch (x) {}
+        if (!r.ok) { var e = new Error((j && (j.msg || j.error_description || j.message || j.error)) || ('HTTP ' + r.status)); e.status = r.status; throw e; }
+        return j;
+      });
+    });
+  }
+  function setAuth(u, s) {
+    u.auth = { access: s.access_token, refresh: s.refresh_token, exp: Date.now() + (s.expires_in || 3600) * 1000, uid: (s.user && s.user.id) || (u.auth && u.auth.uid) };
+  }
+  function freshToken(u) {
+    if (u.auth.exp - Date.now() > 60000) return Promise.resolve(u.auth.access);
+    return api('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: u.auth.refresh } }).then(function (s) { setAuth(u, s); persist(); return u.auth.access; });
+  }
+  function payload(u) { return { name: u.name, photo: u.photo || null, workouts: u.workouts, done: u.done, weekKey: u.weekKey }; }
+  function applyRemote(u, d, ts) { u.name = d.name || u.name; u.photo = d.photo || null; u.workouts = d.workouts || []; u.done = d.done || {}; u.weekKey = d.weekKey || ''; u.updatedAt = ts; u.dirty = false; }
+  function failState(e) { return !e.status ? 'off' : (e.status === 400 || e.status === 401 || e.status === 403) ? 'auth' : 'err'; }
+
+  function schedulePush() { clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 800); }
+  function pushNow() {
+    var u = DB.session && DB.users[DB.session];
+    if (!CLOUD || !u || !u.auth || !u.dirty || pushing) return Promise.resolve();
+    pushing = true; setSync('busy');
+    var stamp = u.updatedAt;
+    return freshToken(u).then(function (tok) {
+      return api('/rest/v1/foco_data?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: { user_id: u.auth.uid, data: payload(u), updated_at: new Date(stamp).toISOString() } }, tok);
+    }).then(function () {
+      if (u.updatedAt === stamp) u.dirty = false;
+      persist(); setSync('idle');
+    }).catch(function (e) { setSync(failState(e)); })
+      .then(function () { pushing = false; if (u.dirty && sync.state === 'idle') schedulePush(); });
+  }
+  function pull() {
+    var u = DB.session && DB.users[DB.session];
+    if (!CLOUD || !u || !u.auth) return Promise.resolve(false);
+    if (u.dirty) return pushNow().then(function () { return false; });
+    setSync('busy');
+    return freshToken(u).then(function (tok) {
+      return api('/rest/v1/foco_data?select=data,updated_at&user_id=eq.' + encodeURIComponent(u.auth.uid), {}, tok);
+    }).then(function (rows) {
+      var row = rows && rows[0], changed = false;
+      if (row) { var ts = Date.parse(row.updated_at); if (ts > (u.updatedAt || 0)) { applyRemote(u, row.data || {}, ts); changed = true; } }
+      else { u.dirty = true; u.updatedAt = u.updatedAt || Date.now(); }
+      persist(); setSync('idle'); if (u.dirty) schedulePush();
+      return changed;
+    }).catch(function (e) { setSync(failState(e)); return false; });
+  }
+  function refresh() { if (!CLOUD || !DB.session || !DB.users[DB.session]) return; pull().then(function (ch) { if (ch && !ui.sheet) render(); }); }
+
+  function hash(pw, salt) {
+    var s = salt + ':' + pw;
+    try {
+      if (window.crypto && crypto.subtle) {
+        return crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)).then(function (b) {
+          return Array.from(new Uint8Array(b)).map(function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+        });
+      }
+    } catch (e) {}
+    var h = 5381; for (var i = 0; i < s.length; i++) { h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; }
+    return Promise.resolve('x' + h);
+  }
+
+  /* ---------- datas ---------- */
+  function mondayOf(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+  function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function dayDate(i) { var d = mondayOf(new Date()); d.setDate(d.getDate() + i); return d; }
+  function todayIdx() { return (new Date().getDay() + 6) % 7; }
+  function dayLabel(i) { var d = dayDate(i); return DAYS[i] + ' · ' + d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+  function ensureWeek(u) {
+    var k = ymd(mondayOf(new Date()));
+    if (u.weekKey !== k) { u.weekKey = k; u.done = {}; save(); }
+  }
+
+  /* ---------- ícones ---------- */
+  var I = {
+    home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/>',
+    train: '<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
+    user: '<circle cx="12" cy="8.5" r="3.7"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    back: '<path d="M15 5l-7 7 7 7"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    play: '<path d="M8.5 5.5v13l10-6.5z" fill="currentColor"/>',
+    edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+    cam: '<path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    up: '<path d="M6 14l6-6 6 6"/>',
+    down: '<path d="M6 10l6 6 6-6"/>',
+    arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>'
+  };
+  function ic(n, s) { s = s || 24; return '<svg class="ic" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[n] + '</svg>'; }
+  function logo(s) {
+    return '<svg class="ic" width="' + s + '" height="' + s + '" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 22V12a2 2 0 0 1 2-2h10M42 10h10a2 2 0 0 1 2 2v10M54 42v10a2 2 0 0 1-2 2H42M22 54H12a2 2 0 0 1-2-2V42"/><circle cx="32" cy="32" r="11"/><circle cx="32" cy="32" r="3.8" fill="currentColor" stroke="none"/></svg>';
+  }
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var $ = function (s) { return document.querySelector(s); };
+
+  /* ---------- estado de tela ---------- */
+  var ui = { tab: 'home', workoutId: null, sheet: null, auth: 'login' };
+  var lastKey = '', lastDate = ymd(new Date());
+
+  function applyTheme() {
+    var r = document.documentElement;
+    if (DB.theme) r.setAttribute('data-theme', DB.theme); else r.removeAttribute('data-theme');
+  }
+  function isDark() { return DB.theme ? DB.theme === 'dark' : (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); }
+
+  function avatar(u, cls) {
+    var inner = u.photo ? '<img alt="" src="' + u.photo + '">' : esc((u.name || '?').trim().charAt(0).toUpperCase());
+    return '<span class="avatar ' + (cls || '') + '">' + inner + '</span>';
+  }
+  function findW(u, id) { return u.workouts.filter(function (w) { return w.id === id; })[0]; }
+  function videoHref(ex) {
+    var v = (ex.video || '').trim();
+    if (/^https?:\/\//i.test(v)) return { href: v, saved: true };
+    return { href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent('como fazer ' + ex.name + ' execução correta'), saved: false };
+  }
+
+  /* ---------- telas ---------- */
+  function authView() {
+    var login = ui.auth === 'login';
+    return '<div class="auth">' +
+      '<div class="brand">' + logo(76) + '<div class="word big">FOCO</div><p>Treino com foco. Todo dia.</p></div>' +
+      '<div class="seg" role="tablist"><button data-act="auth-tab" data-v="login" class="' + (login ? 'on' : '') + '">Entrar</button><button data-act="auth-tab" data-v="signup" class="' + (login ? '' : 'on') + '">Criar conta</button></div>' +
+      '<form data-form="auth" novalidate>' +
+      (login ? '' : '<div class="field"><label for="f-name">Seu nome</label><input id="f-name" autocomplete="name" placeholder="Como quer ser chamado"></div>') +
+      '<div class="field"><label for="f-user">Usuário</label><input id="f-user" autocomplete="username" autocapitalize="none" autocorrect="off" placeholder="ex.: maycon"></div>' +
+      '<div class="field"><label for="pw">Senha</label><div class="pwrow"><input id="pw" type="password" autocomplete="' + (login ? 'current-password' : 'new-password') + '" placeholder="' + (login ? 'Sua senha' : 'Mínimo ' + MINPW + ' caracteres') + '"><button type="button" data-act="pw">Mostrar</button></div></div>' +
+      '<div class="err" id="err" role="alert"></div>' +
+      '<button class="btn" type="submit">' + (login ? 'Entrar' : 'Criar conta') + '</button>' +
+      '</form>' +
+      '<p class="note center">' + (CLOUD ? 'Seus treinos ficam salvos na nuvem e aparecem em qualquer aparelho em que você entrar com o seu usuário.' : 'Os dados ficam salvos neste aparelho. Cada pessoa usa seu próprio usuário.') + '</p>' +
+      '</div>';
+  }
+
+  function tabbar() {
+    function t(k, label, icon) { return '<button class="tab" data-act="tab" data-v="' + k + '"' + (ui.tab === k ? ' aria-current="page"' : '') + '>' + ic(icon, 26) + label + '</button>'; }
+    return '<nav class="tabbar" aria-label="Navegação">' + t('home', 'Início', 'home') + t('train', 'Treino', 'train') + t('profile', 'Perfil', 'user') + '</nav>';
+  }
+
+  function homeView(u) {
+    var now = new Date(), wk = now.toLocaleDateString('pt-BR', { weekday: 'long' });
+    var dateStr = now.getDate() + ' de ' + now.toLocaleDateString('pt-BR', { month: 'long' });
+    var first = (u.name || '').trim().split(/\s+/)[0];
+    var ti = todayIdx();
+    var todays = u.workouts.filter(function (w) { return w.day === ti; });
+    var strip = '';
+    for (var i = 0; i < 7; i++) {
+      var ws = u.workouts.filter(function (w) { return w.day === i; });
+      var all = ws.length > 0 && ws.every(function (w) { return u.done[w.id]; });
+      strip += '<div class="wd' + (i === ti ? ' today' : '') + (all ? ' done' : '') + '"><small>' + DAYS[i] + '</small><strong>' + dayDate(i).getDate() + '</strong>' +
+        (ws.length ? '<span class="chip">' + (all ? ic('check', 15) : esc(ws.map(function (w) { return w.letter; }).join(''))) + '</span>' : '<span class="chip none">–</span>') + '</div>';
+    }
+    var today;
+    if (todays.length) {
+      today = '<div class="list">' + todays.map(function (w) { return wcard(u, w); }).join('') + '</div>';
+    } else {
+      today = '<div class="empty"><b>Sem treino marcado hoje</b>Descanso também faz parte. Ou escolha um treino na aba Treino.</div>';
+    }
+    return '<div class="brandrow"><div class="brand">' + logo(34) + '<span class="word">FOCO</span></div><button class="avatar" data-act="tab" data-v="profile" aria-label="Abrir perfil">' + (u.photo ? '<img alt="" src="' + u.photo + '">' : esc((u.name || '?').trim().charAt(0).toUpperCase())) + '</button></div>' +
+      '<div><div class="eyebrow">' + esc(wk) + '</div><div class="dateline">' + esc(dateStr) + '</div><div class="hello">Olá, <b>' + esc(first) + '</b></div></div>' +
+      '<h1 class="hero">Hoje só depende de você,<em>mete a cara.</em></h1>' +
+      '<button class="btn" data-act="go-train">Ir para o treino ' + ic('arrow', 22) + '</button>' +
+      '<section class="group"><div class="sectionhead"><h2>Hoje</h2></div>' + today + '</section>' +
+      '<section class="group"><div class="sectionhead"><h2>Semana</h2><span>reinicia toda segunda</span></div><div class="week">' + strip + '</div></section>';
+  }
+
+  function wcard(u, w) {
+    var done = !!u.done[w.id];
+    var meta = (w.day == null ? 'Sem dia fixo' : dayLabel(w.day)) + ' · ' + w.exercises.length + (w.exercises.length === 1 ? ' exercício' : ' exercícios');
+    return '<div class="card wcard' + (done ? ' done' : '') + '">' +
+      '<button class="wmain" data-act="open-w" data-id="' + w.id + '"><span class="tile">' + esc(w.letter) + '</span><span class="wtext"><b>' + esc(w.name) + '</b><span>' + esc(meta) + '</span></span></button>' +
+      '<button class="chk" data-act="done" data-id="' + w.id + '" aria-label="' + (done ? 'Desmarcar' : 'Marcar como feito') + ' treino ' + esc(w.letter) + '" aria-pressed="' + done + '"><i>' + ic('check', 22) + '</i></button></div>';
+  }
+
+  function trainView(u) {
+    var ws = u.workouts.slice().sort(function (a, b) { return a.letter < b.letter ? -1 : 1; });
+    return '<div class="titlerow"><h1>Treinos</h1><button class="iconbtn fill" data-act="add-w" aria-label="Novo treino">' + ic('plus') + '</button></div>' +
+      (ws.length ? '<div class="list">' + ws.map(function (w) { return wcard(u, w); }).join('') + '</div>' :
+        '<div class="empty"><b>Nenhum treino ainda</b>Toque no + para criar seu Treino A.</div>') +
+      '<p class="note">Toque no círculo para marcar o treino como feito. Os checks voltam ao zero toda segunda-feira.</p>';
+  }
+
+  function detailView(u) {
+    var w = findW(u, ui.workoutId);
+    if (!w) { ui.workoutId = null; return trainView(u); }
+    var done = !!u.done[w.id];
+    var exs = w.exercises.map(function (x, i) {
+      return '<button class="ex" data-act="view-ex" data-id="' + x.id + '"><span class="n">' + (i + 1) + '</span><span class="t"><b>' + esc(x.name) + '</b><span>' + esc(setsText(x)) + '</span></span><span class="pl">' + ic('play', 18) + '</span></button>';
+    }).join('');
+    return '<div class="titlerow"><button class="iconbtn" data-act="back" aria-label="Voltar">' + ic('back') + '</button><div style="flex:1;min-width:0"><div class="eyebrow">Treino ' + esc(w.letter) + '</div></div><button class="iconbtn" data-act="edit-w" data-id="' + w.id + '" aria-label="Editar treino">' + ic('edit') + '</button></div>' +
+      '<div><h1 style="margin:0;font:800 42px/1 var(--display);text-transform:uppercase;overflow-wrap:anywhere">' + esc(w.name) + '</h1><div class="sub">' + (w.day == null ? 'Sem dia fixo' : esc(DAYS_FULL[w.day]) + ', ' + dayDate(w.day).getDate() + ' de ' + dayDate(w.day).toLocaleDateString('pt-BR', { month: 'long' })) + '</div></div>' +
+      (w.exercises.length ? '<div class="list">' + exs + '</div>' : '<div class="empty"><b>Sem exercícios</b>Adicione o primeiro exercício deste treino.</div>') +
+      '<button class="btn alt sm" data-act="add-ex">' + ic('plus', 20) + ' Adicionar exercício</button>' +
+      '<button class="btn ' + (done ? 'ghost' : 'ok') + '" data-act="done" data-id="' + w.id + '">' + ic('check', 22) + (done ? ' Feito · desmarcar' : ' Marcar como feito') + '</button>';
+  }
+  function setsText(x) {
+    var s = (x.sets ? x.sets + (x.sets === '1' ? ' série' : ' séries') : ''), r = (x.reps ? x.reps + ' rep.' : '');
+    return (s && r) ? (x.sets + ' × ' + x.reps) : (s || r || 'Séries a definir');
+  }
+
+  function profileView(u) {
+    var dark = isDark();
+    return '<div class="titlerow"><h1>Perfil</h1></div>' +
+      '<div class="center">' + avatar(u, 'xl') + '<label class="photobtn">' + ic('cam', 20) + 'Trocar foto<input id="photo" type="file" accept="image/*"></label></div>' +
+      '<form data-form="name" class="group"><h3>Seu nome</h3><div class="field"><input id="p-name" value="' + esc(u.name) + '" autocomplete="name" aria-label="Seu nome"></div><div class="note">Usuário: ' + esc(DB.session) + '</div><button class="btn alt sm" type="submit">Salvar nome</button></form>' +
+      '<section class="group"><h3>Tema</h3><div class="seg"><button data-act="theme" data-v="light" class="' + (!dark ? 'on' : '') + '">Claro</button><button data-act="theme" data-v="dark" class="' + (dark ? 'on' : '') + '">Escuro</button></div></section>' +
+      '<section class="group"><h3>Dados</h3><p class="note" id="syncstat" style="margin:0">' + SYNC_TEXT[sync.state] + '</p>' +
+      (CLOUD ? '<button class="btn alt sm" data-act="sync">Sincronizar agora</button>' : '') + '</section>' +
+      '<button class="btn danger sm" data-act="logout">Sair da conta</button>';
+  }
+
+  function sheetView(u) {
+    var s = ui.sheet, body = '';
+    if (s.type === 'w') {
+      var w = s.id ? findW(u, s.id) : null;
+      var opts = '<option value="">Sem dia fixo</option>' + DAYS_FULL.map(function (d, i) { return '<option value="' + i + '"' + (w && w.day === i ? ' selected' : '') + '>' + d + ' · ' + dayDate(i).getDate() + ' de ' + MONTHS[dayDate(i).getMonth()] + '</option>'; }).join('');
+      body = '<div class="grab"></div><h2>' + (w ? 'Editar treino ' + esc(w.letter) : 'Novo treino ' + nextLetter(u)) + '</h2>' +
+        '<form data-form="w" data-id="' + (w ? w.id : '') + '"><div class="field"><label for="w-name">Nome do treino</label><input id="w-name" value="' + esc(w ? w.name : '') + '" placeholder="ex.: Peito e tríceps" autocomplete="off"></div>' +
+        '<div class="field"><label for="w-day">Dia da semana</label><select id="w-day">' + opts + '</select></div><div class="err" id="err" role="alert"></div>' +
+        '<button class="btn" type="submit">Salvar</button><button type="button" class="btn ghost sm" data-act="close">Cancelar</button>' +
+        (w ? '<button type="button" class="btn danger sm" data-act="del-w" data-id="' + w.id + '">Excluir treino</button>' : '') + '</form>';
+    } else if (s.type === 'ex') {
+      var wk = findW(u, s.wid), x = s.id ? wk.exercises.filter(function (e) { return e.id === s.id; })[0] : null;
+      body = '<div class="grab"></div><h2>' + (x ? 'Editar exercício' : 'Novo exercício') + '</h2>' +
+        '<form data-form="ex" data-id="' + (x ? x.id : '') + '"><div class="field"><label for="x-name">Nome do exercício</label><input id="x-name" value="' + esc(x ? x.name : '') + '" placeholder="ex.: Supino reto" autocomplete="off"></div>' +
+        '<div class="two"><div class="field"><label for="x-sets">Séries</label><input id="x-sets" inputmode="numeric" value="' + esc(x ? x.sets : '') + '" placeholder="4"></div><div class="field"><label for="x-reps">Repetições</label><input id="x-reps" value="' + esc(x ? x.reps : '') + '" placeholder="8-12"></div></div>' +
+        '<div class="field"><label for="x-video">Link do vídeo (YouTube)</label><input id="x-video" type="url" inputmode="url" autocapitalize="none" value="' + esc(x ? x.video : '') + '" placeholder="Cole o link ou deixe em branco"></div>' +
+        '<div class="note" style="margin-top:-8px">Sem link, o botão de vídeo abre uma busca no YouTube pelo nome do exercício.</div>' +
+        '<div class="field"><label for="x-note">Observação</label><textarea id="x-note" placeholder="Carga, descanso, dica de postura...">' + esc(x ? x.note : '') + '</textarea></div><div class="err" id="err" role="alert"></div>' +
+        '<button class="btn" type="submit">Salvar</button><button type="button" class="btn ghost sm" data-act="close">Cancelar</button></form>';
+    } else if (s.type === 'view') {
+      var wv = findW(u, s.wid), ix = -1;
+      wv.exercises.forEach(function (e, i) { if (e.id === s.id) ix = i; });
+      var ex = wv.exercises[ix], v = videoHref(ex);
+      body = '<div class="grab"></div><div><span class="pill">' + esc(setsText(ex)) + '</span></div><h2>' + esc(ex.name) + '</h2>' +
+        (ex.note ? '<p style="margin:0;font-size:17px;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(ex.note) + '</p>' : '') +
+        '<a class="btn" href="' + esc(v.href) + '" target="_blank" rel="noopener noreferrer">' + ic('play', 22) + ' Ver como executar</a>' +
+        '<div class="note" style="margin-top:-6px">' + (v.saved ? 'Abre o vídeo no YouTube.' : 'Sem link salvo: abre uma busca no YouTube.') + '</div>' +
+        '<div class="btnrow"><button class="btn alt sm" data-act="mv" data-dir="-1" data-id="' + ex.id + '"' + (ix === 0 ? ' disabled style="opacity:.4"' : '') + '>' + ic('up', 20) + ' Subir</button><button class="btn alt sm" data-act="mv" data-dir="1" data-id="' + ex.id + '"' + (ix === wv.exercises.length - 1 ? ' disabled style="opacity:.4"' : '') + '>' + ic('down', 20) + ' Descer</button></div>' +
+        '<div class="btnrow"><button class="btn ghost sm" data-act="edit-ex" data-id="' + ex.id + '">' + ic('edit', 18) + ' Editar</button><button class="btn danger sm" data-act="del-ex" data-id="' + ex.id + '">Excluir</button></div>' +
+        '<button class="btn ghost sm" data-act="close">Fechar</button>';
+    }
+    return '<div class="sheet-bg" data-act="bg"><div class="sheet" role="dialog" aria-modal="true">' + body + '</div></div>';
+  }
+  function seedWorkouts() {
+    return [{
+      id: uid(), letter: 'A', name: 'Peito e tríceps', day: 0, exercises: [
+        { id: uid(), name: 'Supino reto', sets: '4', reps: '8-12', video: '', note: 'Exemplo. Edite ou exclua à vontade.' },
+        { id: uid(), name: 'Crucifixo inclinado', sets: '3', reps: '12', video: '', note: '' },
+        { id: uid(), name: 'Tríceps corda', sets: '3', reps: '12-15', video: '', note: '' }
+      ]
+    }];
+  }
+  function nextLetter(u) {
+    var used = u.workouts.map(function (w) { return w.letter; });
+    for (var i = 0; i < 26; i++) { var l = String.fromCharCode(65 + i); if (used.indexOf(l) < 0) return l; }
+    return '?';
+  }
+
+  function render() {
+    var root = $('#app'), sc = root.querySelector('.scroll'), prev = sc ? sc.scrollTop : 0;
+    applyTheme();
+    if (CLOUD && DB.session && DB.users[DB.session] && !DB.users[DB.session].auth) DB.session = null;
+    if (!DB.session || !DB.users[DB.session]) { root.innerHTML = authView(); lastKey = 'auth'; return; }
+    var u = U(); ensureWeek(u);
+    var body = ui.tab === 'home' ? homeView(u) : ui.tab === 'train' ? (ui.workoutId ? detailView(u) : trainView(u)) : profileView(u);
+    root.innerHTML = '<main class="scroll">' + body + '</main>' + tabbar() + (ui.sheet ? sheetView(u) : '');
+    var key = ui.tab + '|' + ui.workoutId, ns = root.querySelector('.scroll');
+    if (ns && key === lastKey) ns.scrollTop = prev;
+    lastKey = key;
+    lastDate = ymd(new Date());
+  }
+
+  /* ---------- ações ---------- */
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-act]'); if (!t) return;
+    var a = t.dataset.act, v = t.dataset.v, id = t.dataset.id, u = DB.session ? U() : null;
+    if (a === 'bg') { if (e.target !== t) return; ui.sheet = null; return render(); }
+    if (t.disabled) return;
+    switch (a) {
+      case 'auth-tab': ui.auth = v; return render();
+      case 'pw': var i = $('#pw'); i.type = i.type === 'password' ? 'text' : 'password'; t.textContent = i.type === 'password' ? 'Mostrar' : 'Ocultar'; return;
+      case 'tab': ui.tab = v; ui.workoutId = null; return render();
+      case 'go-train': ui.tab = 'train'; ui.workoutId = null; return render();
+      case 'open-w': ui.tab = 'train'; ui.workoutId = id; return render();
+      case 'back': ui.workoutId = null; return render();
+      case 'done': u.done[id] = !u.done[id]; if (!u.done[id]) delete u.done[id]; save(); return render();
+      case 'add-w': ui.sheet = { type: 'w' }; return render();
+      case 'edit-w': ui.sheet = { type: 'w', id: id }; return render();
+      case 'add-ex': ui.sheet = { type: 'ex', wid: ui.workoutId }; return render();
+      case 'edit-ex': ui.sheet = { type: 'ex', wid: ui.sheet.wid, id: id }; return render();
+      case 'view-ex': ui.sheet = { type: 'view', wid: ui.workoutId, id: id }; return render();
+      case 'close': ui.sheet = null; return render();
+      case 'mv':
+        var w = findW(u, ui.sheet.wid), from = -1; w.exercises.forEach(function (x, k) { if (x.id === id) from = k; });
+        var to = from + Number(t.dataset.dir);
+        if (from < 0 || to < 0 || to >= w.exercises.length) return;
+        var tmp = w.exercises[from]; w.exercises[from] = w.exercises[to]; w.exercises[to] = tmp; save(); return render();
+      case 'del-ex':
+        if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Toque de novo'; return; }
+        var wd = findW(u, ui.sheet.wid); wd.exercises = wd.exercises.filter(function (x) { return x.id !== id; }); save(); ui.sheet = null; return render();
+      case 'del-w':
+        if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Toque de novo para excluir'; return; }
+        u.workouts = u.workouts.filter(function (x) { return x.id !== id; }); delete u.done[id]; save(); ui.sheet = null; ui.workoutId = null; return render();
+      case 'theme': DB.theme = v; persist(); return render();
+      case 'sync': return pull().then(function (ch) { if (ch) render(); });
+      case 'logout':
+        if (CLOUD && u && u.dirty && !t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Há dados não enviados. Toque de novo para sair'; return pushNow(); }
+        if (CLOUD && DB.session) delete DB.users[DB.session];
+        DB.session = null; persist(); ui = { tab: 'home', workoutId: null, sheet: null, auth: 'login' }; return render();
+    }
+  });
+
+  document.addEventListener('submit', function (e) {
+    var f = e.target, kind = f.dataset.form; if (!kind) return;
+    e.preventDefault();
+    var err = function (m) { var el = $('#err'); if (el) el.textContent = m; };
+    var val = function (id) { var el = $('#' + id); return el ? el.value.trim() : ''; };
+
+    if (kind === 'auth' && CLOUD) {
+      var cuser = val('f-user').toLowerCase(), cpw = $('#pw').value, signup = ui.auth !== 'login', cname = signup ? val('f-name') : '';
+      if (signup) {
+        if (!cname) return err('Digite seu nome.');
+        if (!/^[a-z0-9._-]{3,}$/.test(cuser)) return err('Usuário: mínimo 3 letras ou números, sem espaços.');
+        if (cpw.length < MINPW) return err('A senha precisa ter pelo menos ' + MINPW + ' caracteres.');
+      } else if (!cuser || !cpw) return err('Digite usuário e senha.');
+      var btn = f.querySelector('button[type=submit]'); btn.disabled = true; err('');
+      var signin = function () { return api('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: mail(cuser), password: cpw } }); };
+      var start = signup
+        ? api('/auth/v1/signup', { method: 'POST', body: { email: mail(cuser), password: cpw, data: { name: cname } } }).then(function (s) { return s && s.access_token ? s : signin(); })
+        : signin();
+      start.then(function (s) {
+        var cu = DB.users[cuser] || (DB.users[cuser] = { name: cname || cuser, photo: null, workouts: signup ? seedWorkouts() : [], done: {}, weekKey: '', updatedAt: 0, dirty: signup });
+        if (signup) { cu.name = cname; cu.workouts = seedWorkouts(); cu.updatedAt = Date.now(); cu.dirty = true; }
+        setAuth(cu, s); DB.session = cuser; ui.tab = 'home'; persist();
+        return (signup ? pushNow() : pull()).then(function () { render(); });
+      }).catch(function (e) {
+        btn.disabled = false;
+        var m = e.message || '';
+        err(!e.status ? 'Sem conexão. Tente de novo.' :
+          /already|registered/i.test(m) ? 'Esse usuário já existe. Escolha outro.' :
+          /not confirmed/i.test(m) ? 'Cadastro criado, mas a confirmação de e-mail está ligada no Supabase. Desligue "Confirm email".' :
+          /invalid login/i.test(m) ? 'Usuário ou senha incorretos.' :
+          /at least/i.test(m) ? 'A senha precisa ter pelo menos ' + MINPW + ' caracteres.' :
+          e.status === 429 ? 'Muitas tentativas. Aguarde um pouco.' : 'Não foi possível entrar (' + (m || e.status) + ').');
+      });
+      return;
+    }
+    if (kind === 'auth') {
+      var user = val('f-user').toLowerCase(), pw = $('#pw').value;
+      if (ui.auth === 'login') {
+        var acc = DB.users[user];
+        if (!acc) return err('Usuário não encontrado neste aparelho.');
+        hash(pw, acc.salt).then(function (h) {
+          if (h !== acc.hash) return err('Senha incorreta.');
+          DB.session = user; save(); ui.tab = 'home'; render();
+        });
+      } else {
+        var name = val('f-name');
+        if (!name) return err('Digite seu nome.');
+        if (!/^[a-z0-9._-]{3,}$/.test(user)) return err('Usuário: mínimo 3 letras ou números, sem espaços.');
+        if (pw.length < 4) return err('A senha precisa ter pelo menos 4 caracteres.');
+        if (DB.users[user]) return err('Esse usuário já existe. Escolha outro.');
+        var salt = uid();
+        hash(pw, salt).then(function (h) {
+          DB.users[user] = {
+            name: name, salt: salt, hash: h, photo: null, weekKey: '', done: {},
+            workouts: seedWorkouts()
+          };
+          DB.session = user; save(); ui.tab = 'home'; render();
+        });
+      }
+      return;
+    }
+    var u = U();
+    if (kind === 'name') {
+      var n = val('p-name'); if (!n) return;
+      u.name = n; save(); return render();
+    }
+    if (kind === 'w') {
+      var wname = val('w-name'), dv = $('#w-day').value, day = dv === '' ? null : Number(dv);
+      if (!wname) return err('Dê um nome ao treino.');
+      if (f.dataset.id) { var w = findW(u, f.dataset.id); w.name = wname; w.day = day; ui.sheet = null; }
+      else { var nw = { id: uid(), letter: nextLetter(u), name: wname, day: day, exercises: [] }; u.workouts.push(nw); ui.tab = 'train'; ui.workoutId = nw.id; ui.sheet = null; }
+      save(); return render();
+    }
+    if (kind === 'ex') {
+      var xn = val('x-name'); if (!xn) return err('Digite o nome do exercício.');
+      var vid = val('x-video');
+      if (vid && !/^https?:\/\//i.test(vid)) { if (/^(www\.|m\.)?(youtube\.com|youtu\.be)/i.test(vid)) vid = 'https://' + vid; else return err('O link precisa começar com https:// ou ser do YouTube.'); }
+      var data = { name: xn, sets: val('x-sets'), reps: val('x-reps'), video: vid, note: val('x-note') };
+      var wx = findW(u, ui.sheet.wid);
+      if (f.dataset.id) { wx.exercises.forEach(function (x) { if (x.id === f.dataset.id) Object.assign(x, data); }); ui.sheet = { type: 'view', wid: wx.id, id: f.dataset.id }; }
+      else { data.id = uid(); wx.exercises.push(data); ui.sheet = null; }
+      save(); return render();
+    }
+  });
+
+  document.addEventListener('change', function (e) {
+    if (e.target.id !== 'photo' || !e.target.files || !e.target.files[0]) return;
+    var file = e.target.files[0], fr = new FileReader();
+    fr.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var S = 320, c = document.createElement('canvas'); c.width = c.height = S;
+        var m = Math.min(img.width, img.height), sx = (img.width - m) / 2, sy = (img.height - m) / 2;
+        c.getContext('2d').drawImage(img, sx, sy, m, m, 0, 0, S, S);
+        U().photo = c.toDataURL('image/jpeg', 0.85); save(); render();
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    if (ymd(new Date()) !== lastDate && !ui.sheet) render();
+    refresh();
+  });
+  window.addEventListener('online', refresh);
+  setInterval(function () { if (!document.hidden && !ui.sheet) refresh(); }, 60000);
+
+  render();
+  refresh();
+})();
+</script>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+</body>
+</html>
