@@ -140,6 +140,8 @@
   .ex .t span { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
   .ex .pl { width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; }
 
+  .desc { padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .desc p { margin: 0; font-size: 18px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
   .empty { padding: 26px 18px; text-align: center; color: var(--muted); border: 2px dashed var(--line); border-radius: 14px; }
   .empty b { display: block; color: var(--fg); font: 700 22px var(--display); text-transform: uppercase; margin-bottom: 4px; }
 
@@ -253,8 +255,8 @@
     if (u.auth.exp - Date.now() > 60000) return Promise.resolve(u.auth.access);
     return api('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: u.auth.refresh } }).then(function (s) { setAuth(u, s); persist(); return u.auth.access; });
   }
-  function payload(u) { return { name: u.name, photo: u.photo || null, workouts: u.workouts, done: u.done, weekKey: u.weekKey }; }
-  function applyRemote(u, d, ts) { u.name = d.name || u.name; u.photo = d.photo || null; u.workouts = d.workouts || []; u.done = d.done || {}; u.weekKey = d.weekKey || ''; u.updatedAt = ts; u.dirty = false; }
+  function payload(u) { return { name: u.name, photo: u.photo || null, workouts: u.workouts, done: u.done, weekKey: u.weekKey, planVersion: u.planVersion || 0 }; }
+  function applyRemote(u, d, ts) { u.name = d.name || u.name; u.photo = d.photo || null; u.workouts = d.workouts || []; u.done = d.done || {}; u.weekKey = d.weekKey || ''; u.planVersion = d.planVersion || 0; u.updatedAt = ts; u.dirty = false; }
   function failState(e) { return !e.status ? 'off' : (e.status === 400 || e.status === 401 || e.status === 403) ? 'auth' : 'err'; }
 
   function schedulePush() { clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 800); }
@@ -407,7 +409,7 @@
 
   function wcard(u, w) {
     var done = !!u.done[w.id];
-    var meta = (w.day == null ? 'Sem dia fixo' : dayLabel(w.day)) + ' · ' + w.exercises.length + (w.exercises.length === 1 ? ' exercício' : ' exercícios');
+    var meta = (w.day == null ? 'Sem dia fixo' : dayLabel(w.day)) + ' · ' + (w.kind === 'run' ? 'Corrida' : w.exercises.length + (w.exercises.length === 1 ? ' exercício' : ' exercícios'));
     return '<div class="card wcard' + (done ? ' done' : '') + '">' +
       '<button class="wmain" data-act="open-w" data-id="' + w.id + '"><span class="tile">' + esc(w.letter) + '</span><span class="wtext"><b>' + esc(w.name) + '</b><span>' + esc(meta) + '</span></span></button>' +
       '<button class="chk" data-act="done" data-id="' + w.id + '" aria-label="' + (done ? 'Desmarcar' : 'Marcar como feito') + ' treino ' + esc(w.letter) + '" aria-pressed="' + done + '"><i>' + ic('check', 22) + '</i></button></div>';
@@ -430,8 +432,9 @@
     }).join('');
     return '<div class="titlerow"><button class="iconbtn" data-act="back" aria-label="Voltar">' + ic('back') + '</button><div style="flex:1;min-width:0"><div class="eyebrow">Treino ' + esc(w.letter) + '</div></div><button class="iconbtn" data-act="edit-w" data-id="' + w.id + '" aria-label="Editar treino">' + ic('edit') + '</button></div>' +
       '<div><h1 style="margin:0;font:800 42px/1 var(--display);text-transform:uppercase;overflow-wrap:anywhere">' + esc(w.name) + '</h1><div class="sub">' + (w.day == null ? 'Sem dia fixo' : esc(DAYS_FULL[w.day]) + ', ' + dayDate(w.day).getDate() + ' de ' + dayDate(w.day).toLocaleDateString('pt-BR', { month: 'long' })) + '</div></div>' +
-      (w.exercises.length ? '<div class="list">' + exs + '</div>' : '<div class="empty"><b>Sem exercícios</b>Adicione o primeiro exercício deste treino.</div>') +
-      '<button class="btn alt sm" data-act="add-ex">' + ic('plus', 20) + ' Adicionar exercício</button>' +
+      (w.desc ? '<div class="card desc"><div class="eyebrow">' + (w.kind === 'run' ? 'Como fazer' : 'Orientação') + '</div><p>' + esc(w.desc) + '</p></div>' : '') +
+      (w.kind === 'run' ? '' : (w.exercises.length ? '<div class="list">' + exs + '</div>' : '<div class="empty"><b>Sem exercícios</b>Adicione o primeiro exercício deste treino.</div>') +
+      '<button class="btn alt sm" data-act="add-ex">' + ic('plus', 20) + ' Adicionar exercício</button>') +
       '<button class="btn ' + (done ? 'ghost' : 'ok') + '" data-act="done" data-id="' + w.id + '">' + ic('check', 22) + (done ? ' Feito · desmarcar' : ' Marcar como feito') + '</button>';
   }
   function setsText(x) {
@@ -457,7 +460,8 @@
       var opts = '<option value="">Sem dia fixo</option>' + DAYS_FULL.map(function (d, i) { return '<option value="' + i + '"' + (w && w.day === i ? ' selected' : '') + '>' + d + ' · ' + dayDate(i).getDate() + ' de ' + MONTHS[dayDate(i).getMonth()] + '</option>'; }).join('');
       body = '<div class="grab"></div><h2>' + (w ? 'Editar treino ' + esc(w.letter) : 'Novo treino ' + nextLetter(u)) + '</h2>' +
         '<form data-form="w" data-id="' + (w ? w.id : '') + '"><div class="field"><label for="w-name">Nome do treino</label><input id="w-name" value="' + esc(w ? w.name : '') + '" placeholder="ex.: Peito e tríceps" autocomplete="off"></div>' +
-        '<div class="field"><label for="w-day">Dia da semana</label><select id="w-day">' + opts + '</select></div><div class="err" id="err" role="alert"></div>' +
+        '<div class="field"><label for="w-day">Dia da semana</label><select id="w-day">' + opts + '</select></div>' +
+        '<div class="field"><label for="w-desc">Descrição (opcional)</label><textarea id="w-desc" placeholder="Orientações do treino">' + esc(w ? w.desc : '') + '</textarea></div><div class="err" id="err" role="alert"></div>' +
         '<button class="btn" type="submit">Salvar</button><button type="button" class="btn ghost sm" data-act="close">Cancelar</button>' +
         (w ? '<button type="button" class="btn danger sm" data-act="del-w" data-id="' + w.id + '">Excluir treino</button>' : '') + '</form>';
     } else if (s.type === 'ex') {
@@ -483,6 +487,35 @@
     }
     return '<div class="sheet-bg" data-act="bg"><div class="sheet" role="dialog" aria-modal="true">' + body + '</div></div>';
   }
+  /* Plano híbrido iniciante (PDF), carregado uma vez no usuário Maycon */
+  var PLAN_VERSION = 1;
+  function ex(name, sets, reps, note) { return { id: uid(), name: name, sets: sets, reps: reps, video: '', note: note || '' }; }
+  var REST = 'Carga leve a moderada, 60 a 90 segundos de descanso entre as séries. Termine cada série sentindo que ainda faria mais 2 ou 3 repetições com boa técnica.';
+  function planWorkouts() {
+    return [
+      { id: uid(), letter: 'A', name: 'Peito, tríceps e ombros', day: 0, desc: REST, exercises: [
+        ex('Supino reto', '3', '10–12'), ex('Supino inclinado', '3', '10–12'), ex('Peck deck', '2', '12'), ex('Cross over alto', '2', '12'),
+        ex('Tríceps corda', '3', '12'), ex('Tríceps francês', '2', '12'), ex('Desenvolvimento de ombro', '2', '10–12'), ex('Elevação lateral', '2', '12–15')] },
+      { id: uid(), letter: 'B', name: 'Corrida leve', kind: 'run', day: 1, desc: 'Corrida leve com intervalos de 1 min caminhando e 1 min correndo leve.', exercises: [] },
+      { id: uid(), letter: 'C', name: 'Costas, bíceps e trapézio', day: 2, desc: REST, exercises: [
+        ex('Puxada alta', '3', '10–12'), ex('Puxada baixa', '3', '10–12'), ex('Remada unilateral', '2', '10 cada lado'), ex('Pull down', '2', '12'),
+        ex('Rosca alternada sentado', '2', '12'), ex('Rosca martelo', '2', '12'), ex('Rosca barra W', '2', '10–12'), ex('Encolhimento', '2', '12')] },
+      { id: uid(), letter: 'D', name: 'Corrida com progressão', kind: 'run', day: 3, desc: 'Tiros de 200 m com 1 min caminhando. Total de 5 km.', exercises: [] },
+      { id: uid(), letter: 'E', name: 'Inferiores completo e panturrilha', day: 4, desc: REST, exercises: [
+        ex('Agachamento livre', '3', '10–12'), ex('Cadeira flexora', '3', '12'), ex('Leg press', '3', '12'), ex('Stiff', '2', '10–12'), ex('Cadeira extensora', '2', '12'),
+        ex('Panturrilha em pé ou no leg press', '3', '12–15', 'Faça o movimento completo: desça o calcanhar de forma controlada, suba até ficar na ponta dos pés e evite impulsionar o corpo.')] },
+      { id: uid(), letter: 'F', name: 'Corrida longa', kind: 'run', day: 5, desc: '2 min correndo e 1 min caminhando. Total de 5 km.', exercises: [] }
+    ];
+  }
+  function applyPlan(key, u) {
+    if (u.planVersion === PLAN_VERSION) return;
+    var first = String(u.name || '').trim().split(/\s+/)[0].toLowerCase();
+    if (key !== 'maycon' && first !== 'maycon') return;
+    var plan = planWorkouts(), letters = plan.map(function (w) { return w.letter; });
+    var extras = (u.workouts || []).filter(function (w) { return letters.indexOf(w.letter) < 0; });
+    u.workouts = plan.concat(extras); u.done = {}; u.planVersion = PLAN_VERSION;
+    save();
+  }
   function seedWorkouts() {
     return [{
       id: uid(), letter: 'A', name: 'Peito e tríceps', day: 0, exercises: [
@@ -503,7 +536,7 @@
     applyTheme();
     if (CLOUD && DB.session && DB.users[DB.session] && !DB.users[DB.session].auth) DB.session = null;
     if (!DB.session || !DB.users[DB.session]) { root.innerHTML = authView(); lastKey = 'auth'; return; }
-    var u = U(); ensureWeek(u);
+    var u = U(); applyPlan(DB.session, u); ensureWeek(u);
     var body = ui.tab === 'home' ? homeView(u) : ui.tab === 'train' ? (ui.workoutId ? detailView(u) : trainView(u)) : profileView(u);
     root.innerHTML = '<main class="scroll">' + body + '</main>' + tabbar() + (ui.sheet ? sheetView(u) : '');
     var key = ui.tab + '|' + ui.workoutId, ns = root.querySelector('.scroll');
@@ -621,8 +654,9 @@
     if (kind === 'w') {
       var wname = val('w-name'), dv = $('#w-day').value, day = dv === '' ? null : Number(dv);
       if (!wname) return err('Dê um nome ao treino.');
-      if (f.dataset.id) { var w = findW(u, f.dataset.id); w.name = wname; w.day = day; ui.sheet = null; }
-      else { var nw = { id: uid(), letter: nextLetter(u), name: wname, day: day, exercises: [] }; u.workouts.push(nw); ui.tab = 'train'; ui.workoutId = nw.id; ui.sheet = null; }
+      var wdesc = val('w-desc');
+      if (f.dataset.id) { var w = findW(u, f.dataset.id); w.name = wname; w.day = day; w.desc = wdesc; ui.sheet = null; }
+      else { var nw = { id: uid(), letter: nextLetter(u), name: wname, day: day, desc: wdesc, exercises: [] }; u.workouts.push(nw); ui.tab = 'train'; ui.workoutId = nw.id; ui.sheet = null; }
       save(); return render();
     }
     if (kind === 'ex') {
